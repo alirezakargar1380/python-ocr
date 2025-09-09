@@ -15,7 +15,7 @@ def extract_numbers_from_image(image_path: str) -> str:
     return text
 
 def process_images():
-    root_dir = "."
+    root_dir = Path(__file__).resolve().parent
     while True:
         # List all .png files
         for file in os.listdir(root_dir):
@@ -43,4 +43,5 @@ def process_images():
         time.sleep(1)  # Run every 1s
 
 if __name__ == "__main__":
+    print("running...")
     process_images()
