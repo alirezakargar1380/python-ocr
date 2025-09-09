@@ -1,15 +1,9 @@
 import easyocr
-from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import JSONResponse
-import shutil
-from pathlib import Path
+import os
 import time
-from PIL import Image
+from pathlib import Path
 
-POST_URL = "https://tracking.post.ir"
-
-
-def extract_numbers_from_image(image_path: str):
+def extract_numbers_from_image(image_path: str) -> str:
     # Initialize the reader (English by default)
     reader = easyocr.Reader(["en"])
 
@@ -20,23 +14,33 @@ def extract_numbers_from_image(image_path: str):
     text = " ".join(results)
     return text
 
+def process_images():
+    root_dir = "."
+    while True:
+        # List all .png files
+        for file in os.listdir(root_dir):
+            if file.lower().endswith(".png"):
+                base_name = os.path.splitext(file)[0]
+                txt_file = f"{base_name}.txt"
 
-app = FastAPI()
-app.mount("/api", app)
+                # Only process if txt file doesn't exist
+                if not os.path.exists(os.path.join(root_dir, txt_file)):
+                    image_path = os.path.join(root_dir, file)
+                    print(f"Processing {image_path}...")
 
+                    # Extract numbers
+                    result = extract_numbers_from_image(image_path)
 
-@app.post("/extract-number")
-async def extract_number_api(file: UploadFile = File(...)):
-    temp_path = Path(f"temp_{file.filename}")
-    with temp_path.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    try:
-        result = extract_numbers_from_image(str(temp_path))
-    finally:
-        temp_path.unlink(missing_ok=True)
-    return JSONResponse(content={"number": result})
+                    # Save result
+                    with open(os.path.join(root_dir, txt_file), "w", encoding="utf-8") as f:
+                        f.write(result)
+                        
+                    temp_path = Path(f"{image_path}")
+                    temp_path.unlink(missing_ok=True)    
+                        
+                    print(f"Saved result to {txt_file}")
 
+        time.sleep(1)  # Run every 1s
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
+    process_images()
