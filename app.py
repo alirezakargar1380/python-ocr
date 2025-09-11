@@ -3,16 +3,13 @@ import os
 import time
 from pathlib import Path
 
+# ✅ Initialize the OCR reader once (heavy operation)
+reader = easyocr.Reader(["en"])
+
 def extract_numbers_from_image(image_path: str) -> str:
-    # Initialize the reader (English by default)
-    reader = easyocr.Reader(["en"])
-
-    # Run OCR on the image
+    # Run OCR on the image (using the global reader)
     results = reader.readtext(image_path, detail=0)  # detail=0 gives only text
-
-    # Combine all detected text into a single string
-    text = " ".join(results)
-    return text
+    return " ".join(results)
 
 def process_images():
     root_dir = Path(__file__).resolve().parent
@@ -24,23 +21,26 @@ def process_images():
                 txt_file = f"{base_name}.txt"
 
                 # Only process if txt file doesn't exist
-                if not os.path.exists(os.path.join(root_dir, txt_file)):
-                    image_path = os.path.join(root_dir, file)
+                if not os.path.exists(root_dir / txt_file):
+                    image_path = root_dir / file
                     print(f"Processing {image_path}...")
 
-                    # Extract numbers
-                    result = extract_numbers_from_image(image_path)
+                    try:
+                        # Extract numbers
+                        result = extract_numbers_from_image(str(image_path))
 
-                    # Save result
-                    with open(os.path.join(root_dir, txt_file), "w", encoding="utf-8") as f:
-                        f.write(result)
-                        
-                    temp_path = Path(f"{image_path}")
-                    temp_path.unlink(missing_ok=True)    
-                        
-                    print(f"Saved result to {txt_file}")
+                        # Save result
+                        with open(root_dir / txt_file, "w", encoding="utf-8") as f:
+                            f.write(result)
 
-        time.sleep(1)  # Run every 1s
+                        # Delete processed image
+                        # image_path.unlink(missing_ok=True)
+
+                        print(f"Saved result to {txt_file}")
+                    except Exception as e:
+                        print(f"⚠️ Failed to process {image_path}: {e}")
+
+        time.sleep(5)  # Run every 5s
 
 if __name__ == "__main__":
     print("running...")
